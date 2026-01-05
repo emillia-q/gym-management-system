@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 # When .env is in the main catalofg
-load_dotenv(dotenv_path="../.env") 
+load_dotenv(dotenv_path=".env") 
 
 # Load link to the database from .env
 SQLALCHEMY_DATABASE_URL=os.getenv("DATABASE_URL")
