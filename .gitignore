@@ -1,0 +1,16 @@
+# Passwords and config (!!!)
+.env
+
+# Python environment
+venv/
+env/
+.venv/
+
+# Temporary files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# System files
+.DS_Store
+Thumbs.db

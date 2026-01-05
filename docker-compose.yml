@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15 # Docker downloads the same package of Postgre for each of us
+    container_name: gym_postgres_db
+    restart: always # Database will automatically restart after some error
+
+    env_file:
+      - .env
+    environment:
+      # Data needed for Python to connect
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME} # Our database name
+    ports:
+      - "5432:5432" # Host port:Domain Postgre port, allows us to connect with database via "localhost:5432"
+    volumes:
+      # Creates a permanent folder, so the data won't disappear after colsing the docker
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  # Booking a place on a disc
+  postgres_data:
