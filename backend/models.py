@@ -1,6 +1,26 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey, Enum,Boolean
+from sqlalchemy import Column, Integer, String, Date, ForeignKey, Enum, Boolean, Double
 from .database import Base
 import enum
+
+# ---------CLUBS---------
+class Club(Base):
+    __tablename__="clubs"
+    
+    id_cl=Column(Integer,primary_key=True)
+    tax=Column(Double,nullable=False)
+    manager_id=Column(Integer,ForeignKey("managers.id_u"),nullable=False)
+    
+# ---------ADDRESSES---------
+class Addresses(Base):
+    __tablename__="addresses"
+
+    id_adr=Column(Integer,primary_key=True)
+    city=Column(String(100),nullable=False)
+    postal_code=Column(String(10),nullable=False)
+    street_name=Column(String(100),nullable=False)
+    street_number=Column(Integer,nullable=False)
+    apartment_number=Column(Integer)
+    club_id=Column(Integer,ForeignKey("clubs.id_cl"),nullable=False)
 
 # ---------USERS---------
 # Definition of possible roles in the system
@@ -25,17 +45,17 @@ class User(Base):
     gender=Column(String(1),nullable=False)
     password=Column(String(255),nullable=False)
     role=Column(Enum(UserRole),nullable=False)
+    address=Column(Integer,ForeignKey("addresses.id_adr"),nullable=False)
 
     # Configures table inheritance -> we use role record to determine which subclass we should be created
     __mapper_args__={ 
         "polymorphic_on": role,
     }
-    #address=Column(Integer,ForeignKey("addresses.id_adr"),nullable=False)
 
 class Client(User):
     __tablename__="clients"
 
-    id_u=Column(Integer,ForeignKey="users.id_u",primary_key=True)
+    id_u=Column(Integer,ForeignKey("users.id_u"),primary_key=True)
 
     __mapper_args__={
         "polymorphic_identity":UserRole.CLIENT
@@ -56,7 +76,7 @@ class Employee(User):
 class Manager(Employee):
     __tablename__="managers"
 
-    id_u=Column(Integer,ForeignKey="employees.id_u",primary_key=True)
+    id_u=Column(Integer,ForeignKey("employees.id_u"),primary_key=True)
 
     __mapper_args__={
         "polymorphic_identity":UserRole.MANAGER
@@ -65,7 +85,7 @@ class Manager(Employee):
 class Receptionist(Employee):
     __tablename__="receptionists"
 
-    id_u=Column(Integer,ForeignKey="employees.id_u",primary_key=True)
+    id_u=Column(Integer,ForeignKey("employees.id_u"),primary_key=True)
 
     __mapper_args__={
         "polymorphic_identity":UserRole.RECEPTIONIST
@@ -74,7 +94,7 @@ class Receptionist(Employee):
 class PersonalTrainer(Employee):
     __tablename__="personal_trainers"
 
-    id_u=Column(Integer,ForeignKey="employees.id_u",primary_key=True)
+    id_u=Column(Integer,ForeignKey("employees.id_u"),primary_key=True)
 
     __mapper_args__={
         "polymorphic_identity":UserRole.PERSONAL_TRAINER
@@ -83,7 +103,7 @@ class PersonalTrainer(Employee):
 class Instructor(Employee):
     __tablename__="instructors"
 
-    id_u=Column(Integer,ForeignKey="employees.id_u",primary_key=True)
+    id_u=Column(Integer,ForeignKey("employees.id_u"),primary_key=True)
 
     __mapper_args__={
         "polymorphic_identity":UserRole.INSTRUCTOR
@@ -110,10 +130,10 @@ class Classes(Base):
 class IndividualClasses(Classes):
     __tablename__="individual_classes"
 
-    id_c=Column(Integer,ForeignKey="classes.id_c",primary_key=True)
+    id_c=Column(Integer,ForeignKey("classes.id_c"),primary_key=True)
     additional_info=Column(String(250))
-    client_id=Column(Integer,ForeignKey="clients.id_u",nullable=False)
-    per_trainer_id=Column(Integer,ForeignKey="personal_trainers.id_u",nullable=False)
+    client_id=Column(Integer,ForeignKey("clients.id_u"),nullable=False)
+    per_trainer_id=Column(Integer,ForeignKey("personal_trainers.id_u"),nullable=False)
 
     __mapper_args__={
         "polymorphic_identity":ClassesType.INDIVIDUAL
@@ -122,15 +142,21 @@ class IndividualClasses(Classes):
 class GroupClasses(Classes):
     __tablename__="group_classes"
 
-    id_c=Column(Integer,ForeignKey="classes.id_c",primary_key=True)
+    id_c=Column(Integer,ForeignKey("classes.id_c"),primary_key=True)
     name=Column(String(30),nullable=False)
-    instructor_id=Column(Integer,ForeignKey="instructors.id_u",nullable=False)
-    manager_id=Column(Integer,ForeignKey="managers.id_u")
-    receptionist_id=Column(Integer,ForeignKey="receptionists.id_u")
+    instructor_id=Column(Integer,ForeignKey("instructors.id_u"),nullable=False)
+    manager_id=Column(Integer,ForeignKey("managers.id_u"))
+    receptionist_id=Column(Integer,ForeignKey("receptionists.id_u"))
 
     __mapper_args__={
         "polymorphic_identity":ClassesType.GROUP
     }
+
+class BookGroupClasses(Base):
+    __tablename__="book_group_classes"
+
+    client_id=Column(Integer,ForeignKey("clients.id_u"),nullable=False,primary_key=True)
+    group_classes_id=Column(Integer,ForeignKey("group_classes.id_c"),nullable=False,primary_key=True)
 
 # ---------MEMBERSHIPS---------
 class MembershipType(str,enum.Enum):
@@ -148,5 +174,21 @@ class Membership(Base):
     price=Column(Integer,nullable=False) # Better option is distinct table with prices for each plan, but for now let's leave it like this
     start_date = Column(Date, nullable=False) # One day for one time pass
     end_date = Column(Date) # So this is not obligatory for it
-    client_id=Column(Integer,ForeignKey="clients.id_u",nullable=False)
-    receptionist_id=Column(Integer,ForeignKey="receptionists.id_u")
+    client_id=Column(Integer,ForeignKey("clients.id_u"),nullable=False)
+    receptionist_id=Column(Integer,ForeignKey("receptionists.id_u"))
+
+# ---------MESSAGES---------
+class Message(Base):
+    __tablename__="messages"
+
+    id_ms=Column(Integer,primary_key=True)
+    content=Column(String(255),nullable=False)
+    pers_trainer_id=Column(Integer,ForeignKey("personal_trainers.id_u"),nullable=False)
+
+class ReceiveMsg(Base):
+    __tablename__="receive_msg"
+
+    client_id=Column(Integer,ForeignKey("clients.id_u"),nullable=False,primary_key=True)
+    msg_id=Column(Integer,ForeignKey("messages.id_ms"),nullable=False,primary_key=True)
+    pers_trainer_id=Column(Integer,ForeignKey("personal_trainers.id_u"),nullable=False,primary_key=True)
+
