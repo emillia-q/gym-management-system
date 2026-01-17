@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from datetime import date
 from . import finance_models  # важно: зарегистрировать новые таблицы в metadata
 from .finance_router import router as finance_router
+from . import schedule
 
 # Check models and create tables in the DB
 # If tables already exist don't overwrite them, only create new ones
@@ -22,6 +23,7 @@ app.include_router(
 
 app.include_router(finance_router)
 
+app.include_router(schedule.router)
 # Tells which URL should trigger this function
 # The one below means: when someone visits the home page...
 @app.get("/")

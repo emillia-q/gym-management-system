@@ -9,7 +9,9 @@ load_dotenv(dotenv_path=".env")
 
 # Load link to the database from .env
 SQLALCHEMY_DATABASE_URL=os.getenv("DATABASE_URL")
-
+#chek is value not null
+if SQLALCHEMY_DATABASE_URL is None:
+    raise ValueError("DATABASE_URL is not set. Please check your .env file!")
 # Create the engine
 engine=create_engine(SQLALCHEMY_DATABASE_URL) # This knows how to physically connect with Docker
 SessionLocal=sessionmaker(autocommit=False,autoflush=False,bind=engine) # 'Movement in database'- each one is a distinct session
