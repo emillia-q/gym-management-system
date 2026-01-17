@@ -8,7 +8,11 @@ models.Base.metadata.create_all(bind=engine)
 
 # Instance of FastAPI class
 app=FastAPI()
-
+app.include_router(
+    individual_classes.router,
+    prefix="/classes",
+    tags=["Individual Classes"]
+)
 # Tells which URL should trigger this function
 # The one below means: when someone visits the home page...
 @app.get("/")
