@@ -1,6 +1,9 @@
-from fastapi import FastAPI
-from .database import engine, Base # Import connection tools
-from . import models
+from fastapi import FastAPI, Depends, HTTPException
+from .database import engine, Base, get_db # Import connection tools
+from . import models,individual_classes
+from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from datetime import date
 
 # Check models and create tables in the DB
 # If tables already exist don't overwrite them, only ccreate new ones
@@ -18,3 +21,53 @@ app.include_router(
 @app.get("/")
 def check_status():
     return {"status": "Database created!"} # Returns a JSON response to verify connection with DB and server
+
+
+# -------USER CREATION-------
+class AddressCreate(BaseModel):
+    id_adr: int
+    city: str
+    postal_code: str
+    street_name: str
+    street_number: int
+
+@app.post("/test/create-address")
+def create_test_address(address: AddressCreate, db: Session = Depends(get_db)):
+    new_adr = models.Addresses(**address.model_dump)
+    db.add(new_adr)
+    db.commit()
+    return {"message": "Address created.", "id": new_adr.id_adr}
+
+class UserCreate(BaseModel):
+    id_u: int
+    first_name: str
+    last_name: str
+    email: str
+    password: str
+    birth_date: date  # Pydantic will check format RRRR-MM-DD
+    phone_number: str
+    gender: str
+    role: models.UserRole
+    address_id: int
+
+@app.post("/test/create-user")
+def create_test_user(user: UserCreate, db: Session = Depends(get_db)):
+    # Check if the user exists
+    db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered.")
+    
+    # Create object from the defined role
+    if user.role == models.UserRole.PERSONAL_TRAINER:
+        new_user = models.PersonalTrainer(
+            **user.model_dump,
+            hire_date=date.today() # Required field for employee
+        )
+    elif user.role == models.UserRole.CLIENT:
+        new_user = models.Client(**user.model_dump)
+    else:
+        new_user = models.User(**user.model_dump)
+
+    db.add(new_user)
+    db.commit()
+    return {"message": f"User with role {user.role} created."}

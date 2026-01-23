@@ -20,7 +20,6 @@ class Addresses(Base):
     street_name=Column(String(100),nullable=False)
     street_number=Column(Integer,nullable=False)
     apartment_number=Column(Integer)
-    club_id=Column(Integer,ForeignKey("clubs.id_cl"),nullable=False)
 
 # ---------USERS---------
 # Definition of possible roles in the system
@@ -30,7 +29,7 @@ class UserRole(str,enum.Enum):
     EMPLOYEE="EMPLOYEE"
     MANAGER="MANAGER"
     RECEPTIONIST="RECEPTIONIST"
-    PERSONAL_TRAINER="PERSONAL TRAINER"
+    PERSONAL_TRAINER="PERSONAL_TRAINER"
     INSTRUCTOR="INSTRUCTOR"
 
 class User(Base):
@@ -45,7 +44,7 @@ class User(Base):
     gender=Column(String(1),nullable=False)
     password=Column(String(255),nullable=False)
     role=Column(Enum(UserRole),nullable=False)
-    address=Column(Integer,ForeignKey("addresses.id_adr"),nullable=False)
+    address_id=Column(Integer,ForeignKey("addresses.id_adr"),nullable=False)
 
     # Configures table inheritance -> we use role record to determine which subclass we should be created
     __mapper_args__={ 
@@ -70,7 +69,7 @@ class Employee(User):
     salary=Column(Integer) 
 
     __mapper_args__ = {
-        "polymorphic_identity": "EMPLOYEE" 
+        "polymorphic_identity": UserRole.EMPLOYEE 
     }
 
 class Manager(Employee):
