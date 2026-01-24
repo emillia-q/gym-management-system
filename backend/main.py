@@ -31,7 +31,6 @@ def check_status():
 
 # -------USER CREATION-------
 class AddressCreate(BaseModel):
-    id_adr: int
     city: str
     postal_code: str
     street_name: str
@@ -39,13 +38,12 @@ class AddressCreate(BaseModel):
 
 @app.post("/test/create-address")
 def create_test_address(address: AddressCreate, db: Session = Depends(get_db)):
-    new_adr = models.Addresses(**address.model_dump)
+    new_adr = models.Addresses(**address.model_dump())
     db.add(new_adr)
     db.commit()
     return {"message": "Address created.", "id": new_adr.id_adr}
 
 class UserCreate(BaseModel):
-    id_u: int
     first_name: str
     last_name: str
     email: str
@@ -65,14 +63,18 @@ def create_test_user(user: UserCreate, db: Session = Depends(get_db)):
     
     # Create object from the defined role
     if user.role == models.UserRole.PERSONAL_TRAINER:
-        new_user = models.PersonalTrainer(
-            **user.model_dump,
-            hire_date=date.today() # Required field for employee
-        )
+        new_user = models.PersonalTrainer(**user.model_dump(), hire_date=date.today())
+    elif user.role == models.UserRole.RECEPTIONIST:
+        new_user = models.Receptionist(**user.model_dump(), hire_date=date.today())
+    elif user.role == models.UserRole.MANAGER:
+        new_user = models.Manager(**user.model_dump(), hire_date=date.today())
+    elif user.role == models.UserRole.INSTRUCTOR:
+        new_user = models.Instructor(**user.model_dump(), hire_date=date.today())
     elif user.role == models.UserRole.CLIENT:
-        new_user = models.Client(**user.model_dump)
+        new_user = models.Client(**user.model_dump())
     else:
-        new_user = models.User(**user.model_dump)
+        # For undefined roles- should not happen
+        new_user = models.User(**user.model_dump())
 
     db.add(new_user)
     db.commit()

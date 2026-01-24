@@ -167,8 +167,8 @@ def reception_sell(req: ReceptionSellRequest, db: Session = Depends(get_db)):
     if client_id is None:
         needed = [
             req.new_client_email, req.new_client_password, req.new_client_first_name,
-            req.new_client_last_name, req.new_client_phone, req.new_client_gender,
-            req.new_client_date_of_birth
+            req.new_client_last_name, req.new_client_phone_number, req.new_client_gender,
+            req.new_client_birth_date
         ]
         if any(v is None for v in needed):
             raise HTTPException(status_code=400, detail="Provide client_id or full new_client_* fields")
@@ -186,7 +186,7 @@ def reception_sell(req: ReceptionSellRequest, db: Session = Depends(get_db)):
             gender=req.new_client_gender,
             password=_hash_password(req.new_client_password),
             role=models.UserRole.CLIENT,
-            address=req.new_client_address_id,
+            address_id=req.new_client_address_id,
         )
         db.add(client)
         db.flush()
