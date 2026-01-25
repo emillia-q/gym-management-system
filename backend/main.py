@@ -7,6 +7,7 @@ from datetime import date
 from . import finance_models  # важно: зарегистрировать новые таблицы в metadata
 from .finance_router import router as finance_router
 from . import schedule
+from typing import Optional
 
 # Check models and create tables in the DB
 # If tables already exist don't overwrite them, only create new ones
@@ -37,6 +38,7 @@ class AddressCreate(BaseModel):
     postal_code: str
     street_name: str
     street_number: int
+    apartment_number: Optional[int] = None
 
 @app.post("/test/create-address")
 def create_test_address(address: AddressCreate, db: Session = Depends(get_db)):
