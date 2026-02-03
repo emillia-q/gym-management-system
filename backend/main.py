@@ -83,3 +83,71 @@ def create_test_user(user: UserCreate, db: Session = Depends(get_db)):
     db.add(new_user)
     db.commit()
     return {"message": f"User with role {user.role} created."}
+
+# -------LOG IN-------
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/login")
+def login(request: LoginRequest, db: Session = Depends(get_db)):
+    # Fin user by email
+    user = db.query(models.User).filter(models.User.email == request.email).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found.")
+    
+    # Password check
+    if user.password != request.password:
+        raise HTTPException(status_code=401, detail="Invalid password.")
+    
+    return {
+        "message": "Login successful",
+        "user_id": user.id_u,
+        "role": user.role,
+        "first_name": user.first_name
+    }
+
+# -------GROUP CLASSES-------
+
+class GroupClassesCreate(BaseModel):
+    start_date: date
+    end_date: date
+    room: str
+    name: str
+    instructor_id: int
+    manager_id: int  # Manager id that creates classes
+    receptionist_id: int | None = None
+
+@app.post("/classes/group")
+def create_group_class(data: GroupClassesCreate, db: Session = Depends(get_db)):
+    # Verification of manager id
+    manager = db.query(models.Manager).filter(models.Manager.id_u == data.manager_id).first()
+    if not manager:
+        raise HTTPException(
+            status_code=403, 
+            detail="Access denied. Only a Manager can create group classes."
+        )
+
+    # Create group classes
+    # Using GroupClasses model
+    new_group_class = models.GroupClasses(
+        start_date=data.start_date,
+        end_date=data.end_date,
+        room=data.room,
+        name=data.name,
+        instructor_id=data.instructor_id,
+        manager_id=data.manager_id,
+        receptionist_id=data.receptionist_id,
+        classes_type=models.ClassesType.GROUP
+    )
+
+    try:
+        db.add(new_group_class)
+        db.commit()
+        db.refresh(new_group_class)
+        return {"message": "Group class created successfully.", "class_id": new_group_class.id_c}
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
