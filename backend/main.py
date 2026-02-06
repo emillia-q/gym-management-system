@@ -8,6 +8,8 @@ from . import finance_models  # важно: зарегистрировать н�
 from .finance_router import router as finance_router
 from . import schedule
 from typing import Optional
+from sqlalchemy import func
+
 
 # Check models and create tables in the DB
 # If tables already exist don't overwrite them, only create new ones
@@ -151,3 +153,87 @@ def create_group_class(data: GroupClassesCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    
+class DeleteClientRequest(BaseModel):
+    password: str
+
+
+@app.delete("/clients/{client_id}")
+def delete_client(client_id: int, payload: DeleteClientRequest, db: Session = Depends(get_db)):
+    """
+    Deletes a CLIENT account and related data to avoid FK constraint errors.
+    Requires password confirmation (minimal safety).
+    """
+
+    user = db.query(models.User).filter(models.User.id_u == client_id).first()
+    if not user or user.role != models.UserRole.CLIENT:
+        raise HTTPException(status_code=404, detail="Client not found.")
+
+    # minimal confirmation
+    if user.password != payload.password:
+        raise HTTPException(status_code=401, detail="Invalid password.")
+
+    address_id = user.address_id
+
+    try:
+        # ---- MEMBERSHIPS -> PAYMENTS ----
+        membership_ids = [
+            m[0] for m in db.query(models.Membership.id_m)
+            .filter(models.Membership.client_id == client_id)
+            .all()
+        ]
+
+        if membership_ids:
+            db.query(finance_models.MembershipPayment) \
+              .filter(finance_models.MembershipPayment.membership_id.in_(membership_ids)) \
+              .delete(synchronize_session=False)
+
+        db.query(models.Membership) \
+          .filter(models.Membership.client_id == client_id) \
+          .delete(synchronize_session=False)
+
+        # ---- BOOKINGS (meta + base) ----
+        db.query(finance_models.BookGroupClassesMeta) \
+          .filter(finance_models.BookGroupClassesMeta.client_id == client_id) \
+          .delete(synchronize_session=False)
+
+        db.query(models.BookGroupClasses) \
+          .filter(models.BookGroupClasses.client_id == client_id) \
+          .delete(synchronize_session=False)
+
+        # ---- MESSAGES ----
+        db.query(models.ReceiveMsg) \
+          .filter(models.ReceiveMsg.client_id == client_id) \
+          .delete(synchronize_session=False)
+
+        # ---- INDIVIDUAL CLASSES ----
+        db.query(models.IndividualClasses) \
+          .filter(models.IndividualClasses.client_id == client_id) \
+          .delete(synchronize_session=False)
+
+        # ---- CLIENT + USER (joined-table inheritance) ----
+        db.query(models.Client) \
+          .filter(models.Client.id_u == client_id) \
+          .delete(synchronize_session=False)
+
+        db.query(models.User) \
+          .filter(models.User.id_u == client_id) \
+          .delete(synchronize_session=False)
+
+        # ---- OPTIONAL: delete address if unused by anyone else ----
+        others_using_address = db.query(func.count(models.User.id_u)).filter(
+            models.User.address_id == address_id,
+            models.User.id_u != client_id
+        ).scalar()
+
+        if others_using_address == 0:
+            db.query(models.Addresses) \
+              .filter(models.Addresses.id_adr == address_id) \
+              .delete(synchronize_session=False)
+
+        db.commit()
+        return {"status": "success", "message": "Client deleted."}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Delete failed: {str(e)}")

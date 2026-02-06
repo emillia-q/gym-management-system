@@ -1,29 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "../api/http";
+import { mapBooking, type ApiBooking, type UiBooking } from "../api/mappers/schedule";
 import { getAuthUser } from "../lib/auth";
 
-type Booking = {
-  booking_id: number;
-  class_name: string;
-  start_time: string;
-  room: string;
-};
+function formatDate(value: string | null): string {
+  if (!value) return "-";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value;
+  return d.toLocaleString();
+}
 
 export default function MyBookings() {
   const user = getAuthUser();
-  const [data, setData] = useState<Booking[] | null>(null);
+  const clientId = useMemo(() => user?.userId, [user]);
+
+  const [data, setData] = useState<UiBooking[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    if (!clientId) return;
 
-    fetch(`/api/schedule/my-bookings/${user.clientId}`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
+    setError(null);
+    setData(null);
+
+    api
+      .get<ApiBooking[]>(`/schedule/my-bookings/${clientId}`)
+      .then((raw) => raw.map(mapBooking))
       .then(setData)
-      .catch((e) => setError(String(e)));
-  }, [user]);
+      .catch((e) => setError(String(e?.message ?? e)));
+  }, [clientId]);
 
   if (!user) {
     return (
@@ -46,8 +51,8 @@ export default function MyBookings() {
       {data && data.length > 0 && (
         <ul style={{ display: "grid", gap: 10, paddingLeft: 18 }}>
           {data.map((b) => (
-            <li key={b.booking_id}>
-              <b>{b.class_name}</b> — {new Date(b.start_time).toLocaleString()} — Room: {b.room}
+            <li key={b.id}>
+              <b>{b.className}</b> — {formatDate(b.startDate)} — Room: {b.room}
             </li>
           ))}
         </ul>
