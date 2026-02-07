@@ -11,6 +11,9 @@ import Contact from "./pages/Contact";
 import SignUp from "./pages/SignUp.tsx";
 import MyBookings from "./pages/MyBookings";
 import Login from "./pages/Login";
+import MyMemberships from "./pages/MyMemberships";
+import CancelBooking from "./pages/CancelBooking";
+
 
 
 const router = createBrowserRouter([
@@ -25,6 +28,9 @@ const router = createBrowserRouter([
       { path: "contact", element: <Contact /> },
       { path: "my-bookings", element: <MyBookings /> },
       { path: "login", element: <Login /> },
+      { path: "my-memberships", element: <MyMemberships /> },
+      { path: "cancel-booking", element: <CancelBooking /> },
+
     ],
   },
 ]);

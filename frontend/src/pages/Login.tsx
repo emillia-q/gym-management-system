@@ -59,12 +59,6 @@ export default function Login() {
     cursor: "pointer",
   };
 
-  const disabledBtn: React.CSSProperties = {
-    ...primaryBtn,
-    opacity: 0.45,
-    cursor: "not-allowed",
-  };
-
   const dangerBtn: React.CSSProperties = {
     ...primaryBtn,
     border: "1px solid rgba(255,80,80,0.45)",
@@ -192,13 +186,14 @@ export default function Login() {
                 Buy membership
               </button>
 
-              <button type="button" disabled title="TODO: view + backend endpoint to list memberships" style={disabledBtn}>
-                My memberships (coming soon)
+              <button type="button" onClick={() => navigate("/my-memberships")} style={primaryBtn}>
+                My memberships
               </button>
 
-              <button type="button" disabled title="TODO: cancellation endpoint + UI in My bookings" style={disabledBtn}>
-                Cancel a booking (coming soon)
+              <button type="button" onClick={() => navigate("/cancel-booking")} style={primaryBtn}>
+                Cancel a booking
               </button>
+
 
               <button
                 type="button"

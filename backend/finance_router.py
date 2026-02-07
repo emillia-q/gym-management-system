@@ -303,3 +303,46 @@ def reception_reserve(group_class_id: int, req: ReceptionReserveRequest, db: Ses
 
     db.commit()
     return {"ok": True, "status": res_status.value}
+
+# --- 2b. LISTA KARNETÓW KLIENTA ---
+@router.get("/clients/{client_id}/memberships", response_model=list[MembershipResponse])
+def list_client_memberships(client_id: int, db: Session = Depends(get_db)):
+    """Returns all memberships purchased by a client (history), newest first."""
+    _require_role(db, client_id, models.UserRole.CLIENT)
+
+    memberships = (
+        db.query(models.Membership)
+        .filter(models.Membership.client_id == client_id)
+        .order_by(models.Membership.start_date.desc(), models.Membership.id_m.desc())
+        .all()
+    )
+
+    if not memberships:
+        return []
+
+    ids = [m.id_m for m in memberships]
+    payments = (
+        db.query(MembershipPayment)
+        .filter(MembershipPayment.membership_id.in_(ids))
+        .all()
+    )
+    pay_by_id = {p.membership_id: p for p in payments}
+
+    out: list[MembershipResponse] = []
+    for m in memberships:
+        p = pay_by_id.get(m.id_m)
+        out.append(
+            MembershipResponse(
+                membership_id=m.id_m,
+                client_id=client_id,
+                type=m.type,
+                with_sauna=m.with_sauna,
+                price=m.price,
+                start_date=m.start_date,
+                end_date=m.end_date,
+                payment_status=(p.status.value if p else "UNKNOWN"),
+                payment_method=(p.payment_method if p else PaymentMethod.CASH),
+            )
+        )
+
+    return out

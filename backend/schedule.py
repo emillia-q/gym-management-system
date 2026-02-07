@@ -2,6 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from pydantic import BaseModel
+from . import models, database, finance_models
+
 
 from . import models, database
 
@@ -131,3 +133,27 @@ def get_my_bookings(client_id: int, db: Session = Depends(get_db)):
             })
 
     return result_list
+
+@router.delete("/bookings/{client_id}/{group_class_id}")
+def cancel_booking(client_id: int, group_class_id: int, db: Session = Depends(get_db)):
+    """Cancel an existing booking for a client (removes row from book_group_classes)."""
+    deleted = (
+        db.query(models.BookGroupClasses)
+        .filter(
+            models.BookGroupClasses.client_id == client_id,
+            models.BookGroupClasses.group_classes_id == group_class_id,
+        )
+        .delete(synchronize_session=False)
+    )
+
+    if deleted == 0:
+        raise HTTPException(status_code=404, detail="Booking not found")
+
+    # optional meta cleanup (if booking was created via reception flow)
+    db.query(finance_models.BookGroupClassesMeta).filter(
+        finance_models.BookGroupClassesMeta.client_id == client_id,
+        finance_models.BookGroupClassesMeta.group_classes_id == group_class_id,
+    ).delete(synchronize_session=False)
+
+    db.commit()
+    return {"status": "success", "message": "Booking cancelled"}
