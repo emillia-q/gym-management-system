@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey, Enum, Boolean, Double
 from .database import Base
+from sqlalchemy import Column, Integer, String, Date, Time, ForeignKey, Enum as SAEnum
 import enum
 
 # ---------CLUBS---------
@@ -119,11 +120,16 @@ class Classes(Base):
     id_c=Column(Integer,primary_key=True)
     start_date=Column(Date,nullable=False)
     end_date=Column(Date,nullable=False)
+
+    start_time=Column(Time, nullable=False)   # <-- DODAJ
+    end_time=Column(Time, nullable=False)     # <-- DODAJ
+
     room=Column(String(20),nullable=False)
-    classes_type=Column(Enum(ClassesType),nullable=False)
+    classes_type=Column(SAEnum(ClassesType),nullable=False)
 
     __mapper_args__={
-        "polymorphic_on": classes_type,
+        "polymorphic_on":classes_type,
+        "polymorphic_identity":ClassesType.INDIVIDUAL
     }
 
 class IndividualClasses(Classes):
@@ -190,4 +196,6 @@ class ReceiveMsg(Base):
     client_id=Column(Integer,ForeignKey("clients.id_u"),nullable=False,primary_key=True)
     msg_id=Column(Integer,ForeignKey("messages.id_ms"),nullable=False,primary_key=True)
     pers_trainer_id=Column(Integer,ForeignKey("personal_trainers.id_u"),nullable=False,primary_key=True)
+
+
 

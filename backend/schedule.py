@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from . import models, database
 from pydantic import BaseModel
+
+from . import models, database
 
 router = APIRouter(
     prefix="/schedule",
     tags=["Schedule & Booking (Osoba 1)"]
 )
 
-# minimalny fallback pojemności, jeśli DB/model nie ma max_capacity
 DEFAULT_MAX_CAPACITY = 20
 
 
@@ -26,32 +26,28 @@ def get_db():
         db.close()
 
 
-def _get_start_dt(obj):
-    """Obsługa rozjazdu: start_time vs start_date."""
-    return getattr(obj, "start_time", None) or getattr(obj, "start_date", None)
-
-
-def _get_max_capacity(group_class):
-    """Obsługa braku kolumny max_capacity w modelu/DB."""
+def _get_max_capacity(group_class) -> int:
+    # jeśli kiedyś dodacie max_capacity do modelu/DB, to zacznie działać automatycznie
     return getattr(group_class, "max_capacity", None) or DEFAULT_MAX_CAPACITY
 
 
 @router.get("/classes")
 def get_available_classes(db: Session = Depends(get_db)):
     """
-    Returns a list of all group classes with capacity information.
-    (Zawsze zwraca max_capacity, nawet jeśli nie ma go w DB -> fallback 20)
+    Public timetable list.
     """
     classes = db.query(models.GroupClasses).all()
 
-    # Zwracamy prostą, stabilną strukturę pod frontend
     result = []
     for c in classes:
         result.append({
-            "id_c": getattr(c, "id_c", None),
-            "name": getattr(c, "name", None),
-            "start_time": _get_start_dt(c),  # trzymamy nazwę start_time dla frontu
-            "room": getattr(c, "room", None),
+            "id_c": c.id_c,
+            "name": c.name,
+            "room": c.room,
+            "start_date": c.start_date,
+            "end_date": c.end_date,
+            "start_time": c.start_time,
+            "end_time": c.end_time,
             "max_capacity": _get_max_capacity(c),
         })
 
@@ -61,13 +57,8 @@ def get_available_classes(db: Session = Depends(get_db)):
 @router.post("/book")
 def book_class(booking: BookingRequest, db: Session = Depends(get_db)):
     """
-    Booking logic:
-    1. Check if the class exists.
-    2. Count how many people are ALREADY booked.
-    3. Compare with max_capacity (fallback 20).
-    4. If there is space -> book. If not -> error.
+    Book a group class for a client.
     """
-
     group_class = db.query(models.GroupClasses).filter(
         models.GroupClasses.id_c == booking.group_class_id
     ).first()
@@ -75,9 +66,10 @@ def book_class(booking: BookingRequest, db: Session = Depends(get_db)):
     if not group_class:
         raise HTTPException(status_code=404, detail="Class not found")
 
-    current_bookings_count = db.query(func.count(models.BookGroupClasses.id_booking)) \
+    # count bookings: BookGroupClasses ma PK (client_id, group_classes_id) bez id_booking
+    current_bookings_count = db.query(func.count(models.BookGroupClasses.client_id)) \
         .filter(models.BookGroupClasses.group_classes_id == booking.group_class_id) \
-        .scalar()
+        .scalar() or 0
 
     max_capacity = _get_max_capacity(group_class)
 
@@ -99,12 +91,12 @@ def book_class(booking: BookingRequest, db: Session = Depends(get_db)):
 
     db.add(new_booking)
     db.commit()
-    db.refresh(new_booking)
 
     return {
         "status": "success",
         "message": "You have been successfully booked!",
-        "booking_id": new_booking.id_booking
+        # brak id_booking w tabeli, więc zwracamy ID zajęć jako stabilny identyfikator
+        "booking_id": booking.group_class_id,
     }
 
 
@@ -122,16 +114,20 @@ def get_my_bookings(client_id: int, db: Session = Depends(get_db)):
 
     result_list = []
     for booking in my_bookings:
-        class_info = db.query(models.Classes).filter(
-            models.Classes.id_c == booking.group_classes_id
+        class_info = db.query(models.GroupClasses).filter(
+            models.GroupClasses.id_c == booking.group_classes_id
         ).first()
 
         if class_info:
             result_list.append({
-                "booking_id": booking.id_booking,
-                "class_name": getattr(class_info, "name", None),
-                "start_time": _get_start_dt(class_info),  # fallback start_date
-                "room": getattr(class_info, "room", None),
+                "booking_id": booking.group_classes_id,   # stabilny "id" dla frontu
+                "group_class_id": booking.group_classes_id,
+                "class_name": class_info.name,
+                "room": class_info.room,
+                "start_date": class_info.start_date,
+                "end_date": class_info.end_date,
+                "start_time": class_info.start_time,
+                "end_time": class_info.end_time,
             })
 
     return result_list
