@@ -114,7 +114,10 @@ export default function ManagerStaff() {
     color: "inherit",
     colorScheme: "dark",
   };
-
+  const optionStyle: React.CSSProperties = {
+    color: "#111",
+    backgroundColor: "#fff",
+  };
   async function loadStaff() {
     if (!user?.userId) return;
     setLoadingList(true);
@@ -292,19 +295,19 @@ export default function ManagerStaff() {
               <label>
                 Role
                 <select value={form.role} onChange={(e) => setForm((p) => ({ ...p, role: e.target.value as StaffRole }))} style={input}>
-                  <option value="RECEPTIONIST">RECEPTIONIST</option>
-                  <option value="INSTRUCTOR">INSTRUCTOR</option>
-                  <option value="PERSONAL_TRAINER">PERSONAL_TRAINER</option>
+                  <option style={optionStyle} value="RECEPTIONIST">RECEPTIONIST</option>
+                  <option style={optionStyle} value="INSTRUCTOR">INSTRUCTOR</option>
+                  <option style={optionStyle} value="PERSONAL_TRAINER">PERSONAL_TRAINER</option>
                 </select>
               </label>
 
               <label>
                 Contract type
                 <select value={form.contract_type} onChange={(e) => setForm((p) => ({ ...p, contract_type: e.target.value }))} style={input}>
-                  <option value="FULL_TIME">FULL_TIME</option>
-                  <option value="PART_TIME">PART_TIME</option>
-                  <option value="B2B">B2B</option>
-                  <option value="OTHER">OTHER</option>
+                  <option style={optionStyle} value="FULL_TIME">FULL_TIME</option>
+                  <option style={optionStyle} value="PART_TIME">PART_TIME</option>
+                  <option style={optionStyle} value="B2B">B2B</option>
+                  <option style={optionStyle} value="OTHER">OTHER</option>
                 </select>
               </label>
             </div>
@@ -339,9 +342,9 @@ export default function ManagerStaff() {
               <label>
                 Gender
                 <select value={form.gender} onChange={(e) => setForm((p) => ({ ...p, gender: e.target.value as any }))} style={input}>
-                  <option value="F">F</option>
-                  <option value="M">M</option>
-                  <option value="O">O</option>
+                  <option style={optionStyle} value="F">F</option>
+                  <option style={optionStyle} value="M">M</option>
+                  <option style={optionStyle} value="O">O</option>
                 </select>
               </label>
               <label>
@@ -462,10 +465,6 @@ export default function ManagerStaff() {
           </div>
         </div>
       )}
-
-      <div style={{ marginTop: 14, opacity: 0.75, fontSize: 13 }}>
-        API: <code>/api/manager/staff</code>
-      </div>
     </div>
   );
 }

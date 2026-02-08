@@ -12,11 +12,29 @@ from sqlalchemy import func
 from datetime import date, time
 from .manager_staff import router as manager_staff_router
 
+from sqlalchemy import text
+from sqlalchemy.exc import ProgrammingError
+
+def ensure_db_schema():
+    """
+    Quick-and-dirty migrations (idempotent).
+    Keeps dev DB in sync without Alembic.
+    """
+    with engine.begin() as conn:
+        # Add start_time/end_time to classes if missing
+        conn.execute(text("""
+            ALTER TABLE classes
+            ADD COLUMN IF NOT EXISTS start_time time NOT NULL DEFAULT '18:00';
+        """))
+        conn.execute(text("""
+            ALTER TABLE classes
+            ADD COLUMN IF NOT EXISTS end_time time NOT NULL DEFAULT '19:00';
+        """))
 
 # Check models and create tables in the DB
 # If tables already exist don't overwrite them, only create new ones
 models.Base.metadata.create_all(bind=engine)
-
+ensure_db_schema()
 # Instance of FastAPI class
 app=FastAPI()
 
@@ -52,6 +70,8 @@ def create_test_address(address: AddressCreate, db: Session = Depends(get_db)):
     db.add(new_adr)
     db.commit()
     return {"message": "Address created.", "id": new_adr.id_adr}
+
+
 
 class UserCreate(BaseModel):
     first_name: str
@@ -139,11 +159,47 @@ def create_group_class(data: GroupClassesCreate, db: Session = Depends(get_db)):
             detail="Access denied. Only a Manager can create group classes."
         )
 
-    # basic validation
     if data.end_date < data.start_date:
         raise HTTPException(status_code=400, detail="end_date must be >= start_date")
     if data.end_time <= data.start_time and data.end_date == data.start_date:
         raise HTTPException(status_code=400, detail="end_time must be > start_time (same-day class)")
+
+    instructor_conflict = (
+        db.query(models.GroupClasses)
+        .filter(
+            models.GroupClasses.instructor_id == data.instructor_id,
+            models.GroupClasses.start_date <= data.end_date,
+            models.GroupClasses.end_date >= data.start_date,
+            models.GroupClasses.start_time < data.end_time,
+            models.GroupClasses.end_time > data.start_time,
+        )
+        .first()
+    )
+
+    if instructor_conflict:
+        raise HTTPException(
+            status_code=400,
+            detail="Instructor is already assigned to another group class at this time."
+        )
+
+    # ---- OPTIONAL (but recommended): room double-booking prevention ----
+    room_conflict = (
+        db.query(models.Classes)
+        .filter(
+            models.Classes.room == data.room,
+            models.Classes.start_date <= data.end_date,
+            models.Classes.end_date >= data.start_date,
+            models.Classes.start_time < data.end_time,
+            models.Classes.end_time > data.start_time,
+        )
+        .first()
+    )
+
+    if room_conflict:
+        raise HTTPException(
+            status_code=400,
+            detail="Room is occupied during this time."
+        )
 
     new_group_class = models.GroupClasses(
         start_date=data.start_date,
