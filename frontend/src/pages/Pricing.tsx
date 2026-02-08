@@ -470,10 +470,7 @@ export default function Pricing() {
         )}
       </div>
 
-      <div style={{ marginTop: 14, opacity: 0.75, fontSize: 13 }}>
-        API: <code>/api/memberships/catalog</code> · purchase:{" "}
-        <code>/api/clients/&lt;userId&gt;/memberships/purchase</code>
-      </div>
+      
     </div>
   );
 }

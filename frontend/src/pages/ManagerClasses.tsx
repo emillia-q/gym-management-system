@@ -197,7 +197,7 @@ export default function ManagerClasses() {
     <div style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>
       <h1>Manager — create group class</h1>
       <p style={{ opacity: 0.85, marginTop: 6 }}>
-        Create a new group class (POST <code>/api/classes/group</code>).
+        Create a new group class.
       </p>
 
       {msg && (
@@ -264,7 +264,7 @@ export default function ManagerClasses() {
                 style={input}
               />
               <div style={{ opacity: 0.7, fontSize: 12, marginTop: 6 }}>
-                (No endpoint for listing instructors yet — for now enter the numeric ID.)
+                
               </div>
             </label>
 
@@ -294,7 +294,7 @@ export default function ManagerClasses() {
           Refresh list
         </button>
         <div style={{ opacity: 0.75 }}>
-          {loadingList ? "Loading…" : classes ? `${sortedClasses.length} classes (from /schedule/classes)` : ""}
+          {loadingList ? "Loading…" : classes ? `${sortedClasses.length} classes` : ""}
         </div>
       </div>
 

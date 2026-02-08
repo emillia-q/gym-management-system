@@ -17,7 +17,7 @@ type GroupClassDto = {
   room?: string;
   max_capacity?: number;
 
-  // ✅ NEW: liczba zapisanych (backend musi zwrócić to pole)
+  //  liczba zapisanych (backend musi zwrócić to pole)
   booked_count?: number;
 };
 
@@ -1019,17 +1019,7 @@ export default function Schedule() {
         </div>
       )}
 
-      <div style={{ marginTop: 14, opacity: 0.75, fontSize: 13 }}>
-        API: <code>/api/schedule/classes</code>
-        {canBook ? (
-          <span>
-            {" "}
-            · booking: <code>/api/schedule/book</code>
-          </span>
-        ) : (
-          <span> · sign in as CLIENT to book</span>
-        )}
-      </div>
+      
     </div>
   );
 }
