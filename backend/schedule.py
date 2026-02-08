@@ -40,8 +40,21 @@ def get_available_classes(db: Session = Depends(get_db)):
     """
     classes = db.query(models.GroupClasses).all()
 
+    # policz zapisy per class_id jednym zapytaniem
+    counts = dict(
+        db.query(
+            models.BookGroupClasses.group_classes_id,
+            func.count(models.BookGroupClasses.client_id)
+        )
+        .group_by(models.BookGroupClasses.group_classes_id)
+        .all()
+    )
+
     result = []
     for c in classes:
+        booked = int(counts.get(c.id_c, 0) or 0)
+        max_cap = _get_max_capacity(c)
+
         result.append({
             "id_c": c.id_c,
             "name": c.name,
@@ -50,10 +63,12 @@ def get_available_classes(db: Session = Depends(get_db)):
             "end_date": c.end_date,
             "start_time": c.start_time,
             "end_time": c.end_time,
-            "max_capacity": _get_max_capacity(c),
+            "max_capacity": max_cap,
+            "booked_count": booked, 
         })
 
     return result
+
 
 
 @router.post("/book")

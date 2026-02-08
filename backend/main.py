@@ -9,6 +9,7 @@ from .finance_router import router as finance_router
 from . import schedule
 from typing import Optional
 from sqlalchemy import func
+from datetime import date, time
 
 
 # Check models and create tables in the DB
@@ -113,9 +114,12 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
 
 # -------GROUP CLASSES-------
 
+
 class GroupClassesCreate(BaseModel):
     start_date: date
     end_date: date
+    start_time: time
+    end_time: time
     room: str
     name: str
     instructor_id: int
@@ -128,15 +132,21 @@ def create_group_class(data: GroupClassesCreate, db: Session = Depends(get_db)):
     manager = db.query(models.Manager).filter(models.Manager.id_u == data.manager_id).first()
     if not manager:
         raise HTTPException(
-            status_code=403, 
+            status_code=403,
             detail="Access denied. Only a Manager can create group classes."
         )
 
-    # Create group classes
-    # Using GroupClasses model
+    # basic validation
+    if data.end_date < data.start_date:
+        raise HTTPException(status_code=400, detail="end_date must be >= start_date")
+    if data.end_time <= data.start_time and data.end_date == data.start_date:
+        raise HTTPException(status_code=400, detail="end_time must be > start_time (same-day class)")
+
     new_group_class = models.GroupClasses(
         start_date=data.start_date,
         end_date=data.end_date,
+        start_time=data.start_time,
+        end_time=data.end_time,
         room=data.room,
         name=data.name,
         instructor_id=data.instructor_id,
@@ -153,6 +163,7 @@ def create_group_class(data: GroupClassesCreate, db: Session = Depends(get_db)):
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
     
 class DeleteClientRequest(BaseModel):
     password: str

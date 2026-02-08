@@ -16,6 +16,9 @@ type GroupClassDto = {
 
   room?: string;
   max_capacity?: number;
+
+  // ✅ NEW: liczba zapisanych (backend musi zwrócić to pole)
+  booked_count?: number;
 };
 
 type ApiMyBooking = {
@@ -151,6 +154,7 @@ type PositionedEvent = {
   name: string;
   room: string;
   maxCap: number;
+  bookedCount: number; // ✅ NEW
   dateKey: string;
 
   startMin: number;
@@ -228,6 +232,7 @@ function WeeklyGrid(props: {
       const name = getName(c);
       const room = c.room ?? "-";
       const maxCap = c.max_capacity ?? 20;
+      const bookedCount = c.booked_count ?? 0; // ✅ NEW
 
       if (!dateKey || !c.start_time || !c.end_time) continue;
 
@@ -240,6 +245,7 @@ function WeeklyGrid(props: {
         name,
         room,
         maxCap,
+        bookedCount,
         dateKey,
         startMin,
         endMin,
@@ -483,9 +489,7 @@ function WeeklyGrid(props: {
                       width: `calc(${widthPct}% - 8px)`,
                       height: Math.max(36, h),
                       borderRadius: 12,
-                      border: isBooked
-                        ? "1px solid rgba(0,255,140,0.35)"
-                        : "1px solid rgba(255,255,255,0.16)",
+                      border: isBooked ? "1px solid rgba(0,255,140,0.35)" : "1px solid rgba(255,255,255,0.16)",
                       background: roomColor(ev.room),
                       padding: 10,
                       boxSizing: "border-box",
@@ -520,8 +524,9 @@ function WeeklyGrid(props: {
                       {fmtMin(ev.startMin)}–{fmtMin(ev.endMin)}
                     </div>
 
+                    {/* ✅ CHANGED: booked/max */}
                     <div style={{ opacity: 0.85, fontSize: 12, marginTop: 4 }}>
-                      Room: {ev.room} · cap {ev.maxCap}
+                      Room: {ev.room} · {ev.bookedCount}/{ev.maxCap}
                     </div>
                   </div>
                 );
@@ -574,22 +579,20 @@ function WeeklyGrid(props: {
               </button>
             </div>
 
-            <div style={{ marginTop: 10, opacity: 0.9 }}>
-              Date: {formatDateTime(selected.dateKey, null)}
-            </div>
+            <div style={{ marginTop: 10, opacity: 0.9 }}>Date: {formatDateTime(selected.dateKey, null)}</div>
             <div style={{ marginTop: 6, opacity: 0.9 }}>
               Time: {fmtMin(selected.startMin)}–{fmtMin(selected.endMin)}
             </div>
+
+            {/* ✅ CHANGED: booked/max */}
             <div style={{ marginTop: 6, opacity: 0.85 }}>
-              Room: {selected.room} · capacity {selected.maxCap}
+              Room: {selected.room} · capacity {selected.bookedCount}/{selected.maxCap}
             </div>
 
             <div style={{ marginTop: 14, display: "flex", gap: 10, alignItems: "center" }}>
               {canBook ? (
                 bookedIds.has(selected.id) ? (
-                  <div style={{ fontWeight: 800, color: "rgba(0,255,140,0.9)" }}>
-                    You’re already booked.
-                  </div>
+                  <div style={{ fontWeight: 800, color: "rgba(0,255,140,0.9)" }}>You’re already booked.</div>
                 ) : (
                   <button
                     type="button"
@@ -729,7 +732,7 @@ export default function Schedule() {
         text: res?.message || "Booked successfully!",
       });
 
-      await load(); // odświeża też bookedIds
+      await load();
     } catch (e: any) {
       setActionMsg({
         type: "error",
@@ -844,13 +847,7 @@ export default function Schedule() {
       )}
 
       {view === "weekly" ? (
-        <WeeklyGrid
-          items={filtered}
-          canBook={canBook}
-          bookingClassId={bookingClassId}
-          bookedIds={bookedIds}
-          onBook={bookClass}
-        />
+        <WeeklyGrid items={filtered} canBook={canBook} bookingClassId={bookingClassId} bookedIds={bookedIds} onBook={bookClass} />
       ) : view === "agenda" ? (
         <div style={{ marginTop: 18, display: "grid", gap: 14 }}>
           {Object.keys(agenda)
@@ -873,6 +870,7 @@ export default function Schedule() {
                     const busy = bookingClassId === id;
                     const maxCap = c.max_capacity ?? 20;
                     const isBooked = bookedIds.has(id);
+                    const bookedCount = c.booked_count ?? 0;
 
                     return (
                       <div
@@ -897,8 +895,7 @@ export default function Schedule() {
                             )}
                           </div>
                           <div style={{ opacity: 0.85, fontSize: 13 }}>
-                            {formatTimeOnly(c.start_time)}–{formatTimeOnly(c.end_time)} · {c.room ?? "-"} · cap{" "}
-                            {maxCap}
+                            {formatTimeOnly(c.start_time)}–{formatTimeOnly(c.end_time)} · {c.room ?? "-"} · {bookedCount}/{maxCap}
                           </div>
                         </div>
 
@@ -945,7 +942,7 @@ export default function Schedule() {
                 <th style={{ padding: 12 }}>Start</th>
                 <th style={{ padding: 12 }}>End</th>
                 <th style={{ padding: 12 }}>Room</th>
-                <th style={{ padding: 12 }}>Max capacity</th>
+                <th style={{ padding: 12 }}>Booked/Cap</th>
                 {canBook && <th style={{ padding: 12 }}>Action</th>}
                 <th style={{ padding: 12 }}>ID</th>
               </tr>
@@ -969,6 +966,7 @@ export default function Schedule() {
                   const id = getId(c);
                   const name = getName(c);
                   const maxCap = c.max_capacity ?? 20;
+                  const bookedCount = c.booked_count ?? 0;
                   const busy = bookingClassId === id;
                   const isBooked = bookedIds.has(id);
 
@@ -988,7 +986,7 @@ export default function Schedule() {
                       <td style={{ padding: 12 }}>{formatDateTime(c.start_date ?? null, c.start_time ?? null)}</td>
                       <td style={{ padding: 12 }}>{formatDateTime(c.end_date ?? null, c.end_time ?? null)}</td>
                       <td style={{ padding: 12 }}>{c.room ?? "-"}</td>
-                      <td style={{ padding: 12 }}>{maxCap}</td>
+                      <td style={{ padding: 12 }}>{bookedCount}/{maxCap}</td>
 
                       {canBook && (
                         <td style={{ padding: 12 }}>

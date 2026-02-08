@@ -9,7 +9,6 @@ type DeleteResponse = { status?: string; message?: string };
 export default function Login() {
   const navigate = useNavigate();
 
-  // ✅ reactive auth state (updates after login/logout)
   const [user, setUser] = useState(() => getAuthUser());
 
   const [email, setEmail] = useState(user?.email ?? "");
@@ -21,12 +20,15 @@ export default function Login() {
 
   const isLoggedIn = !!user;
 
+  const isClient = user?.role === "CLIENT";
+  const isReceptionist = user?.role === "RECEPTIONIST";
+  const isManager = user?.role === "MANAGER";
+
   // keep in sync with localStorage changes
   useEffect(() => {
     const sync = () => {
       const u = getAuthUser();
       setUser(u);
-      // jeśli user się zmienił (np. logowanie innym kontem), uzupełnij email w polu
       setEmail((prev) => (prev ? prev : u?.email ?? ""));
     };
 
@@ -39,7 +41,7 @@ export default function Login() {
     };
   }, []);
 
-  // ---- Styles (dark buttons, consistent look) ----
+  // ---- Styles ----
   const primaryBtn: React.CSSProperties = {
     padding: "11px 12px",
     textAlign: "left",
@@ -84,7 +86,6 @@ export default function Login() {
       const payload: LoginRequestDto = { email: emailTrim, password };
       const res = await api.post<LoginResponseDto>("/login", payload);
 
-      // save + update UI immediately
       const newUser = {
         userId: res.user_id,
         role: res.role,
@@ -95,8 +96,10 @@ export default function Login() {
       setAuthUser(newUser);
       setUser(newUser);
 
-      // zostajemy na /login (panel)
-      navigate("/login");
+      // ✅ role-based redirect after login
+      if (res.role === "RECEPTIONIST") navigate("/reception");
+      else if (res.role === "MANAGER") navigate("/manager/classes");
+      else navigate("/login");
     } catch (e: any) {
       setError(String(e?.message ?? e));
     } finally {
@@ -113,7 +116,8 @@ export default function Login() {
   }
 
   async function deleteAccount() {
-    if (!user?.userId) return;
+    // ✅ delete only for CLIENT (endpoint /clients/{id})
+    if (!user?.userId || !isClient) return;
 
     setError(null);
 
@@ -171,44 +175,102 @@ export default function Login() {
               gap: 12,
             }}
           >
-            <h2 style={{ margin: 0, fontSize: 18 }}>Client panel</h2>
+            {/* ✅ RECEPTIONIST */}
+            {isReceptionist && (
+              <>
+                <h2 style={{ margin: 0, fontSize: 18 }}>Receptionist panel</h2>
 
-            <div style={{ display: "grid", gap: 10 }}>
-              <button type="button" onClick={() => navigate("/my-bookings")} style={primaryBtn}>
-                My bookings (upcoming + history)
-              </button>
+                <div style={{ display: "grid", gap: 10 }}>
+                  <button type="button" onClick={() => navigate("/reception")} style={primaryBtn}>
+                    Reception panel
+                  </button>
 
-              <button type="button" onClick={() => navigate("/schedule")} style={primaryBtn}>
-                Timetable
-              </button>
+                  <button type="button" onClick={() => navigate("/schedule")} style={primaryBtn}>
+                    Timetable (view)
+                  </button>
+                </div>
 
-              <button type="button" onClick={() => navigate("/pricing")} style={primaryBtn}>
-                Buy membership
-              </button>
+                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
+                  Reception can sell memberships and reserve classes for clients.
+                </div>
+              </>
+            )}
 
-              <button type="button" onClick={() => navigate("/my-memberships")} style={primaryBtn}>
-                My memberships
-              </button>
+            {/* ✅ MANAGER */}
+            {isManager && (
+              <>
+                <h2 style={{ margin: 0, fontSize: 18 }}>Manager panel</h2>
 
-              <button type="button" onClick={() => navigate("/cancel-booking")} style={primaryBtn}>
-                Cancel a booking
-              </button>
+                <div style={{ display: "grid", gap: 10 }}>
+                  <button type="button" onClick={() => navigate("/manager/classes")} style={primaryBtn}>
+                    Create group classes
+                  </button>
 
+                  <button type="button" onClick={() => navigate("/schedule")} style={primaryBtn}>
+                    Timetable (view)
+                  </button>
+                </div>
 
-              <button
-                type="button"
-                onClick={deleteAccount}
-                disabled={dangerLoading}
-                style={{
-                  ...dangerBtn,
-                  opacity: dangerLoading ? 0.7 : 1,
-                  cursor: dangerLoading ? "not-allowed" : "pointer",
-                }}
-                title="Permanently delete your account"
-              >
-                {dangerLoading ? "Deleting account..." : "Delete account"}
-              </button>
-            </div>
+                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
+                  Manager creates group classes. Booking classes is for clients (or reception on behalf of clients).
+                </div>
+              </>
+            )}
+
+            {/* ✅ CLIENT */}
+            {isClient && (
+              <>
+                <h2 style={{ margin: 0, fontSize: 18 }}>Client panel</h2>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <button type="button" onClick={() => navigate("/my-bookings")} style={primaryBtn}>
+                    My bookings (upcoming + history)
+                  </button>
+
+                  <button type="button" onClick={() => navigate("/schedule")} style={primaryBtn}>
+                    Timetable
+                  </button>
+
+                  <button type="button" onClick={() => navigate("/pricing")} style={primaryBtn}>
+                    Buy membership
+                  </button>
+
+                  <button type="button" onClick={() => navigate("/my-memberships")} style={primaryBtn}>
+                    My memberships
+                  </button>
+
+                  <button type="button" onClick={() => navigate("/cancel-booking")} style={primaryBtn}>
+                    Cancel a booking
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={deleteAccount}
+                    disabled={dangerLoading}
+                    style={{
+                      ...dangerBtn,
+                      opacity: dangerLoading ? 0.7 : 1,
+                      cursor: dangerLoading ? "not-allowed" : "pointer",
+                    }}
+                    title="Permanently delete your account"
+                  >
+                    {dangerLoading ? "Deleting account..." : "Delete account"}
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
+                  This panel gives quick access to timetable, bookings and membership actions.
+                </div>
+              </>
+            )}
+
+            {/* fallback for unknown roles */}
+            {!isClient && !isReceptionist && !isManager && (
+              <>
+                <h2 style={{ margin: 0, fontSize: 18 }}>User panel</h2>
+                <div style={{ opacity: 0.8 }}>Role not supported yet.</div>
+              </>
+            )}
 
             <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
               <button type="button" onClick={logout} style={secondaryBtn}>
@@ -218,10 +280,6 @@ export default function Login() {
               <button type="button" onClick={() => navigate("/")} style={{ ...secondaryBtn, opacity: 0.9 }}>
                 Back to News
               </button>
-            </div>
-
-            <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
-              This panel gives quick access to timetable, bookings and membership actions.
             </div>
           </div>
         </div>
