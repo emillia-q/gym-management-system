@@ -6,6 +6,7 @@ Postępuj zgodnie z poniższymi krokami, aby poprawnie skonfigurować środowisk
 Pobierz kod na swój dysk lokalny:
 
 cd <Ścieżka do miejsca w którym chcesz trzymać projekt>
+
 git clone <URL_REPOZYTORIUM>
 
 ### 2. Wymagania wstępne
