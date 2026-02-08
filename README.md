@@ -30,11 +30,9 @@ W głównym katalogu projektu (tam, gdzie znajduje się plik docker-compose.yml)
 
 Wklej do pliku .env następującą treść:
 
-# Data for Docker
 DB_USER=admin
 DB_PASSWORD=gym666
 DB_NAME=gym_management_system
-# Data for Python (link to connect)
 DATABASE_URL=postgresql://admin:gym666@localhost:5432/gym_management_system 
 
 
