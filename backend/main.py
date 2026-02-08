@@ -10,6 +10,7 @@ from . import schedule
 from typing import Optional
 from sqlalchemy import func
 from datetime import date, time
+from .manager_staff import router as manager_staff_router
 
 
 # Check models and create tables in the DB
@@ -26,6 +27,8 @@ app.include_router(
 )
 
 app.include_router(finance_router)
+
+app.include_router(manager_staff_router)
 
 app.include_router(schedule.router)
 # Tells which URL should trigger this function

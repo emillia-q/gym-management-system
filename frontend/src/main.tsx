@@ -15,7 +15,7 @@ import CancelBooking from "./pages/CancelBooking";
 import Login from "./pages/Login";
 import Reception from "./pages/Reception";
 import ManagerClasses from "./pages/ManagerClasses";
-import TrainerIndividualClasses from "./pages/TrainerIndividualClasses";
+import ManagerStaff from "./pages/ManagerStaff.tsx";
 
 
 const router = createBrowserRouter([
@@ -34,7 +34,7 @@ const router = createBrowserRouter([
       { path: "cancel-booking", element: <CancelBooking /> },
       { path: "reception", element: <Reception /> },
       { path: "manager/classes", element: <ManagerClasses /> },
-      { path: "trainer/individual-classes", element: <TrainerIndividualClasses /> },
+      { path: "manager/staff", element: <ManagerStaff /> },
     ],
   },
 ]);

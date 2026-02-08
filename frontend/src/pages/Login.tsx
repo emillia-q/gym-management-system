@@ -18,11 +18,15 @@ export default function Login() {
   const [dangerLoading, setDangerLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [showTrainerIndividual, setShowTrainerIndividual] = useState(false);
+
   const isLoggedIn = !!user;
 
   const isClient = user?.role === "CLIENT";
   const isReceptionist = user?.role === "RECEPTIONIST";
   const isManager = user?.role === "MANAGER";
+  const isPersonalTrainer = user?.role === "PERSONAL_TRAINER";
+  const isInstructor = user?.role === "INSTRUCTOR";
 
   // keep in sync with localStorage changes
   useEffect(() => {
@@ -96,10 +100,9 @@ export default function Login() {
       setAuthUser(newUser);
       setUser(newUser);
 
-      // ✅ role-based redirect after login
-      if (res.role === "RECEPTIONIST") navigate("/reception");
-      else if (res.role === "MANAGER") navigate("/manager/classes");
-      else navigate("/login");
+      // po zalogowaniu pokazujemy panel roli na /login
+      setShowTrainerIndividual(false);
+      navigate("/login");
     } catch (e: any) {
       setError(String(e?.message ?? e));
     } finally {
@@ -112,17 +115,17 @@ export default function Login() {
     setUser(null);
     setPassword("");
     setError(null);
+    setShowTrainerIndividual(false);
     navigate("/login");
   }
 
   async function deleteAccount() {
-    // ✅ delete only for CLIENT (endpoint /clients/{id})
     if (!user?.userId || !isClient) return;
 
     setError(null);
 
     const pwd = window.prompt("To delete your account, please confirm your password:");
-    if (pwd === null) return; // cancelled
+    if (pwd === null) return;
     if (!pwd.trim()) {
       setError("Password is required to delete the account.");
       return;
@@ -137,6 +140,7 @@ export default function Login() {
 
       clearAuthUser();
       setUser(null);
+      setShowTrainerIndividual(false);
       navigate("/");
     } catch (e: any) {
       setError(String(e?.message ?? e));
@@ -151,11 +155,7 @@ export default function Login() {
     <div style={{ maxWidth: 560, padding: 24 }}>
       <h1>Login</h1>
 
-      {error && (
-        <div style={{ marginTop: 10, color: "tomato" }}>
-          Error: {error}
-        </div>
-      )}
+      {error && <div style={{ marginTop: 10, color: "tomato" }}>Error: {error}</div>}
 
       {isLoggedIn ? (
         <div style={{ marginTop: 12 }}>
@@ -206,13 +206,59 @@ export default function Login() {
                     Create group classes
                   </button>
 
+                  <button type="button" onClick={() => navigate("/manager/staff")} style={primaryBtn}>
+                    Manage staff (add employees)
+                  </button>
+
                   <button type="button" onClick={() => navigate("/schedule")} style={primaryBtn}>
                     Timetable (view)
                   </button>
                 </div>
 
                 <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
-                  Manager creates group classes. Booking classes is for clients (or reception on behalf of clients).
+                  Manager creates group classes and can add employees (receptionist / instructor / personal trainer).
+                </div>
+              </>
+            )}
+
+            {/* ✅ PERSONAL TRAINER */}
+            {isPersonalTrainer && (
+              <>
+                <h2 style={{ margin: 0, fontSize: 18 }}>Personal trainer panel</h2>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowTrainerIndividual((v) => !v)}
+                    style={primaryBtn}
+                  >
+                    {showTrainerIndividual ? "Hide individual classes" : "Create individual classes"}
+                  </button>
+
+                  <button type="button" onClick={() => navigate("/schedule")} style={primaryBtn}>
+                    Timetable (view)
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
+                  Personal trainer can create individual trainings and view timetable.
+                </div>
+              </>
+            )}
+
+            {/* ✅ INSTRUCTOR */}
+            {isInstructor && (
+              <>
+                <h2 style={{ margin: 0, fontSize: 18 }}>Instructor panel</h2>
+
+                <div style={{ display: "grid", gap: 10 }}>
+                  <button type="button" onClick={() => navigate("/schedule")} style={primaryBtn}>
+                    Timetable (view)
+                  </button>
+                </div>
+
+                <div style={{ marginTop: 6, fontSize: 13, opacity: 0.8 }}>
+                  Instructor can view timetable.
                 </div>
               </>
             )}
@@ -265,7 +311,7 @@ export default function Login() {
             )}
 
             {/* fallback for unknown roles */}
-            {!isClient && !isReceptionist && !isManager && (
+            {!isClient && !isReceptionist && !isManager && !isPersonalTrainer && !isInstructor && (
               <>
                 <h2 style={{ margin: 0, fontSize: 18 }}>User panel</h2>
                 <div style={{ opacity: 0.8 }}>Role not supported yet.</div>
@@ -282,6 +328,8 @@ export default function Login() {
               </button>
             </div>
           </div>
+
+  
         </div>
       ) : (
         <>

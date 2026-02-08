@@ -1,4 +1,4 @@
-## 🚀 Instrukcja uruchomienia projektu
+## Instrukcja uruchomienia projektu
 
 Postępuj zgodnie z poniższymi krokami, aby poprawnie skonfigurować środowisko i uruchomić aplikację.
 
@@ -9,6 +9,7 @@ git clone <URL_REPOZYTORIUM>
 
 ### 2. Wymagania wstępne
 Zainstaluj Docker Desktop:  https://www.docker.com/
+
 Zainstaluj Node.js z linku:  https://nodejs.org/en/blog/release/v20.9.0
 
 Zalecane środowisko (IDE): Visual Studio Code:  https://code.visualstudio.com/download
@@ -59,4 +60,5 @@ npm install (wykonywane jednorazowo przy pierwszym uruchomieniu programu)
 npm run dev
 
 Aplikację znajdziesz pod stroną: http://localhost:5173/
+
 Dokumentacja API (Swagger): http://localhost:8000/docs
