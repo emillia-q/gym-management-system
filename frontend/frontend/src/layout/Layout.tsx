@@ -3,10 +3,10 @@ import { NavLink, Outlet } from "react-router-dom";
 import { getAuthUser } from "../lib/auth";
 
 const leftLinks = [
-  { to: "/", label: "HOME" },
+  { to: "/", label: "NEWS" },
   { to: "/schedule", label: "TIMETABLE" },
   { to: "/pricing", label: "BUY MEMBERSHIP" },
-  { to: "/contact", label: "CONTACT US!" },
+  { to: "/contact", label: "CONTACT" },
   { to: "/my-bookings", label: "MY BOOKINGS" },
 ];
 

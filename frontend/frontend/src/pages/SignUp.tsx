@@ -261,10 +261,10 @@ export default function SignUp() {
               style={{ width: "100%", padding: 10, marginTop: 6 }}
             >
               <option value="CLIENT">CLIENT</option>
-              {/* <option value="RECEPTIONIST">RECEPTIONIST</option>
+              <option value="RECEPTIONIST">RECEPTIONIST</option>
               <option value="MANAGER">MANAGER</option>
               <option value="INSTRUCTOR">INSTRUCTOR</option>
-              <option value="PERSONAL_TRAINER">PERSONAL TRAINER</option> */}
+              <option value="PERSONAL_TRAINER">PERSONAL TRAINER</option>
             </select>
           </label>
         </div>
