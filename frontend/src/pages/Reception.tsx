@@ -719,10 +719,6 @@ export default function Reception() {
           </div>
         </div>
       )}
-
-      <div style={{ marginTop: 14, opacity: 0.75, fontSize: 13 }}>
-        API: <code>/api/reception/memberships/sell</code> · <code>/api/reception/group-classes/{`{id}`}/reserve</code>
-      </div>
     </div>
   );
 }
