@@ -10,6 +10,55 @@ type Role =
 
 type Gender = "F" | "M" | "O";
 
+/** ----------------- REGEXY + VALIDATORY ----------------- **/
+const RE = {
+  // Imię/nazwisko: litery (również PL), spacje, myślnik, apostrof; min 2 znaki
+  name: /^[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż][A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż\s'-]{1,48}$/,
+
+  // Email: rozsądny regex (nie "RFC-perfect", ale praktyczny)
+  email: /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/,
+
+  // Hasło: min 8, 1 mała, 1 duża, 1 cyfra, 1 znak specjalny, brak spacji
+  password:
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s])[^\s]{8,64}$/,
+
+  // Kod pocztowy PL: 00-001
+  postalPL: /^\d{2}-\d{3}$/,
+
+  // Miasto/ulica: litery (PL), cyfry (dla typu "3 Maja"), spacje, kropka, myślnik
+  cityOrStreet: /^[A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9][A-Za-zĄĆĘŁŃÓŚŹŻąćęłńóśźż0-9\s.\-']{1,58}$/,
+
+  // Telefon: E.164 (+48123456789) lub PL ze spacjami (np. +48 123 456 789 / 123456789)
+  // - pozwala na opcjonalne + i separatory spacja/myślnik
+  phone: /^(?:\+?\d{1,3})?[\s-]?(?:\d[\s-]?){7,14}\d$/,
+};
+
+function isValidISODateYYYYMMDD(s: string) {
+  // Wstępnie format YYYY-MM-DD
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+  const d = new Date(s);
+  if (Number.isNaN(d.getTime())) return false;
+
+  // Sprawdź czy po parsowaniu nie "przestawiło" daty (np. 2024-02-31)
+  const [y, m, day] = s.split("-").map(Number);
+  return (
+    d.getUTCFullYear() === y &&
+    d.getUTCMonth() + 1 === m &&
+    d.getUTCDate() === day
+  );
+}
+
+function calcAge(birthISO: string) {
+  const [y, m, d] = birthISO.split("-").map(Number);
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const mm = today.getMonth() + 1;
+  const dd = today.getDate();
+  if (mm < m || (mm === m && dd < d)) age--;
+  return age;
+}
+/** -------------------------------------------------------- **/
+
 export default function SignUp() {
   const navigate = useNavigate();
 
@@ -24,13 +73,12 @@ export default function SignUp() {
     role: "CLIENT" as Role,
   });
 
-  // ✅ apartment_number optional
   const [address, setAddress] = useState({
     city: "",
     postal_code: "",
     street_name: "",
     street_number: "",
-    apartment_number: "", // optional input
+    apartment_number: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -56,10 +104,97 @@ export default function SignUp() {
     let data: any = {};
     try {
       data = JSON.parse(text);
-    } catch {
-      // not json
-    }
+    } catch {}
     return { text, data };
+  }
+
+  function fail(msg: string) {
+    setError(msg);
+    return false;
+  }
+
+  function validateAll(): boolean {
+    const first = user.first_name.trim();
+    const last = user.last_name.trim();
+    const email = user.email.trim();
+    const pass = user.password;
+    const phone = user.phone_number.trim();
+
+    const city = address.city.trim();
+    const postal = address.postal_code.trim();
+    const streetName = address.street_name.trim();
+    const streetNoRaw = address.street_number.trim();
+    const aptRaw = address.apartment_number.trim();
+
+    // Required checks
+    if (!first || !last || !email || !pass) {
+      return fail("Please fill in first name, last name, email and password.");
+    }
+
+    // Regex checks
+    if (!RE.name.test(first)) {
+      return fail("First name is invalid (min 2 chars, letters/spaces/-/' only).");
+    }
+    if (!RE.name.test(last)) {
+      return fail("Last name is invalid (min 2 chars, letters/spaces/-/' only).");
+    }
+    if (!RE.email.test(email)) {
+      return fail("Email is invalid.");
+    }
+    if (!RE.password.test(pass)) {
+      return fail(
+        "Password must be 8-64 chars, include uppercase, lowercase, digit and special character, and contain no spaces."
+      );
+    }
+
+    // birth_date
+    if (!user.birth_date) return fail("Please provide birth date.");
+    if (!isValidISODateYYYYMMDD(user.birth_date)) {
+      return fail("Birth date is invalid (use a real date).");
+    }
+    // not in future + sensible age range
+    const birth = new Date(user.birth_date);
+    const today = new Date();
+    if (birth.getTime() > today.getTime()) {
+      return fail("Birth date cannot be in the future.");
+    }
+    const age = calcAge(user.birth_date);
+    if (age < 13) return fail("You must be at least 13 years old.");
+    if (age > 120) return fail("Birth date looks unrealistic (age > 120).");
+
+    // Phone optional, but if provided -> regex
+    if (phone && !RE.phone.test(phone)) {
+      return fail("Phone number is invalid. Example: +48 123 456 789 or +48123456789.");
+    }
+
+    // Address required
+    if (!city || !postal || !streetName || !streetNoRaw) {
+      return fail(
+        "Please fill in all required address fields (city, postal code, street name, street number)."
+      );
+    }
+    if (!RE.cityOrStreet.test(city)) {
+      return fail("City is invalid.");
+    }
+    if (!RE.postalPL.test(postal)) {
+      return fail("Postal code is invalid. Example: 00-001.");
+    }
+    if (!RE.cityOrStreet.test(streetName)) {
+      return fail("Street name is invalid.");
+    }
+
+    // numbers
+    const streetNum = Number(streetNoRaw);
+    if (!Number.isInteger(streetNum) || streetNum <= 0) {
+      return fail("Street number must be a positive integer.");
+    }
+
+    const aptNum = aptRaw === "" ? null : Number(aptRaw);
+    if (aptNum !== null && (!Number.isInteger(aptNum) || aptNum <= 0)) {
+      return fail("Apartment number must be empty or a positive integer.");
+    }
+
+    return true;
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -67,49 +202,19 @@ export default function SignUp() {
     setOkMsg(null);
     setError(null);
 
-    // Basic validation
-    if (!user.first_name || !user.last_name || !user.email || !user.password) {
-      setError("Please fill in first name, last name, email and password.");
-      return;
-    }
-    if (!user.birth_date) {
-      setError("Please provide birth date.");
-      return;
-    }
-    if (
-      !address.city ||
-      !address.postal_code ||
-      !address.street_name ||
-      !address.street_number
-    ) {
-      setError(
-        "Please fill in all required address fields (city, postal code, street name, street number)."
-      );
-      return;
-    }
+    if (!validateAll()) return;
 
-    const streetNum = Number(address.street_number);
-    if (!Number.isInteger(streetNum) || streetNum <= 0) {
-      setError("Street number must be a positive number.");
-      return;
-    }
-
-    // apartment optional validation
+    const streetNum = Number(address.street_number.trim());
     const aptRaw = address.apartment_number.trim();
     const aptNum = aptRaw === "" ? null : Number(aptRaw);
-    if (aptNum !== null && (!Number.isInteger(aptNum) || aptNum <= 0)) {
-      setError("Apartment number must be empty or a positive number.");
-      return;
-    }
 
     try {
       setLoading(true);
 
-      // 1) Create address (now supports apartment_number optional)
       const addressPayload: any = {
-        city: address.city,
-        postal_code: address.postal_code,
-        street_name: address.street_name,
+        city: address.city.trim(),
+        postal_code: address.postal_code.trim(),
+        street_name: address.street_name.trim(),
         street_number: streetNum,
       };
       if (aptNum !== null) addressPayload.apartment_number = aptNum;
@@ -129,7 +234,6 @@ export default function SignUp() {
         throw new Error(msg);
       }
 
-      // Backend returns: {"message": "...", "id": <id_adr>}
       const addressId =
         adrData?.id_adr ?? adrData?.address_id ?? adrData?.id ?? adrData?.data?.id_adr;
 
@@ -139,9 +243,12 @@ export default function SignUp() {
         );
       }
 
-      // 2) Create user with address_id
       const userPayload: any = {
         ...user,
+        first_name: user.first_name.trim(),
+        last_name: user.last_name.trim(),
+        email: user.email.trim(),
+        phone_number: user.phone_number.trim(),
         address_id: Number(addressId),
       };
 
@@ -155,7 +262,9 @@ export default function SignUp() {
       if (!resUser.ok) {
         const msg =
           (typeof userData?.detail === "string" && userData.detail) ||
-          (Array.isArray(userData?.detail) ? JSON.stringify(userData.detail, null, 2) : "") ||
+          (Array.isArray(userData?.detail)
+            ? JSON.stringify(userData.detail, null, 2)
+            : "") ||
           userText ||
           `User create failed (HTTP ${resUser.status})`;
         throw new Error(msg);
@@ -261,10 +370,6 @@ export default function SignUp() {
               style={{ width: "100%", padding: 10, marginTop: 6 }}
             >
               <option value="CLIENT">CLIENT</option>
-              {/* <option value="RECEPTIONIST">RECEPTIONIST</option>
-              <option value="MANAGER">MANAGER</option>
-              <option value="INSTRUCTOR">INSTRUCTOR</option>
-              <option value="PERSONAL_TRAINER">PERSONAL TRAINER</option> */}
             </select>
           </label>
         </div>
