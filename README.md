@@ -28,13 +28,6 @@ W głównym katalogu projektu (tam, gdzie znajduje się plik docker-compose.yml)
 
 [!IMPORTANT] Plik musi nazywać się dokładnie .env. Upewnij się, że jest on dodany do pliku .gitignore !!!
 
-Wklej do pliku .env następującą treść:
-
-DB_USER=admin
-DB_PASSWORD=gym666
-DB_NAME=gym_management_system
-DATABASE_URL=postgresql://admin:gym666@localhost:5432/gym_management_system 
-
 
 ### 5. Uruchomienie bazy danych (Docker)
 Aby zbudować i uruchomić kontener z bazą danych w tle, wpisz w terminalu:
