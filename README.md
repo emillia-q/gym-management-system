@@ -5,7 +5,9 @@
 > **Prototype Version:** This project is a prototype developed for a Software Engineering course. The primary goal was to experience the business side of commercial projects and practice professional teamwork rather than building a final, production- ready product.
 
 ## 📺 Video Preview
-![Project preview](assets/gym_management_preview.gif)
+<div align="center">
+  <video src="https://github.com/user-attachments/assets/ea6b9bda-ccae-4d3d-8245-25ba5cd1977e"></video>
+</div>
 
 ## 🏢 Project Origins
 The project began with a **formal business interview** with our client, **Mr. Janusz Biceps**, the founder of a rapidly growing gym network. 
